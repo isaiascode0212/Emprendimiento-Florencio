@@ -430,13 +430,13 @@ def procesar_factura_ia():
             if texto_respuesta:
                 break
 
-        # --- NIVEL 2: OPENROUTER (Respaldo si Gemini no respondió) ---
+        # --- NIVEL 2: OPENROUTER (Respaldo automático con ruta gratuita) ---
         if not texto_respuesta and (time.time() - tiempo_inicio <= limite_tiempo):
             print("Gemini agotado. Intentando con OpenRouter...")
             try:
                 base64_image = base64.b64encode(imagen_bytes).decode('utf-8')
                 completion = openrouter_client.chat.completions.create(
-                    model="google/gemini-2.5-flash",
+                    model="google/gemini-2.5-flash:free",
                     messages=[{
                         "role": "user",
                         "content": [
@@ -451,26 +451,12 @@ def procesar_factura_ia():
                 ultimo_error = err_or
                 print(f"OpenRouter también falló: {err_or}")
 
-        # --- NIVEL 3: GROQ CLOUD (Respaldo final ultrarrápido) ---
-        if not texto_respuesta and (time.time() - tiempo_inicio <= limite_tiempo):
-            print("OpenRouter agotado. Intentando con Groq Cloud...")
-            try:
-                base64_image = base64.b64encode(imagen_bytes).decode('utf-8')
-                completion = groq_client.chat.completions.create(
-                    model="llama-3.3-70b-vision-versatile",
-                    messages=[{
-                        "role": "user",
-                        "content": [
-                            {"type": "text", "text": prompt},
-                            {"type": "image_url", "image_url": {"url": f"data:{mime_tipo};base64,{base64_image}"}}
-                        ]
-                    }],
-                    response_format={"type": "json_object"}
-                )
-                texto_respuesta = completion.choices[0].message.content
-            except Exception as err_groq:
-                ultimo_error = err_groq
-                print(f"Groq Cloud también falló: {err_groq}")
+        if not texto_respuesta:
+            raise Exception(f"Gemini y OpenRouter fallaron o se agotó el tiempo límite. Último error: {ultimo_error}")
+
+        datos_factura = json.loads(texto_respuesta)
+
+       
 
         if not texto_respuesta:
             raise Exception(f"Todos los proveedores de IA fallaron o se agotó el tiempo límite de 1 minuto. Último error: {ultimo_error}")
