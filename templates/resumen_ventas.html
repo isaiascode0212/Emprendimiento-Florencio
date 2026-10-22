@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Resumen de Ventas - Calendario Completo</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --bg-body: #0d0f1d;
+            --bg-card: #16192e;
+            --bg-card-hover: #1e223d;
+            --bg-sidebar: #121426;
+            --accent-cyan: #00d2ff;
+            --accent-pink: #ff2a70;
+            --accent-purple: #7000ff;
+            --text-main: #ffffff;
+            --text-muted: #8c93b0;
+            --border-color: #232745;
+            --accent-green: #00e699;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; }
+
+        body {
+            background-color: var(--bg-body);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .dashboard-container {
+            width: 100%;
+            max-width: 1280px;
+            background-color: #121424;
+            border-radius: 20px;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
+            display: flex;
+            overflow: hidden;
+            min-height: 650px;
+        }
+
+        .sidebar {
+            width: 250px;
+            background-color: var(--bg-sidebar);
+            border-right: 1px solid var(--border-color);
+            padding: 25px 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 25px;
+        }
+
+        .brand-logo { display: flex; align-items: center; gap: 12px; font-weight: 700; font-size: 1.1rem; }
+        .logo-icon {
+            width: 36px; height: 36px;
+            background: linear-gradient(135deg, var(--accent-pink), var(--accent-purple));
+            border-radius: 10px; display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 800;
+        }
+
+        .nav-menu { display: flex; flex-direction: column; gap: 10px; list-style: none; }
+        .nav-item a {
+            display: flex; align-items: center; gap: 14px; padding: 12px 16px;
+            color: var(--text-muted); text-decoration: none; border-radius: 12px; font-size: 0.9rem; font-weight: 500; transition: all 0.25s ease;
+        }
+        .nav-item a:hover, .nav-item.active a {
+            background-color: var(--bg-card-hover); color: var(--text-main); border-left: 3px solid var(--accent-cyan);
+        }
+
+        .main-content {
+            flex: 1; padding: 25px 30px; display: flex; flex-direction: column; gap: 20px;
+            background: radial-gradient(circle at top right, #1a1d36, #121424); overflow-y: auto;
+        }
+
+        .top-bar { display: flex; justify-content: space-between; align-items: center; padding-bottom: 15px; border-bottom: 1px solid var(--border-color); }
+        .page-title h1 { font-size: 1.4rem; font-weight: 700; }
+        .page-title p { font-size: 0.8rem; color: var(--text-muted); }
+
+        /* Contenedor del Calendario */
+        .calendar-card {
+            background-color: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 20px;
+        }
+
+        .calendar-nav-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .calendar-nav-header h2 {
+            font-size: 1.2rem;
+            color: #fff;
+            text-transform: capitalize;
+        }
+
+        .btn-nav-cal {
+            background: var(--bg-sidebar);
+            border: 1px solid var(--border-color);
+            color: #fff;
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.2s;
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-nav-cal:hover {
+            background: var(--bg-card-hover);
+            border-color: var(--accent-cyan);
+        }
+
+        /* Cuadrícula de 8 Columnas (7 días + 1 Resumen Semanal) */
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr) 1.2fr;
+            gap: 8px;
+        }
+
+        .day-name-head {
+            text-align: center;
+            font-size: 0.78rem;
+            color: var(--text-muted);
+            font-weight: 700;
+            padding: 8px 0;
+            text-transform: uppercase;
+        }
+
+        .day-name-head.weekly-head {
+            color: var(--accent-purple);
+            background: rgba(112, 0, 255, 0.1);
+            border-radius: 6px;
+        }
+
+        .day-cell {
+            background: var(--bg-sidebar);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            min-height: 100px;
+            padding: 8px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            transition: all 0.2s;
+            position: relative;
+        }
+
+        .day-cell.empty {
+            background: transparent;
+            border: none;
+        }
+
+        .day-header-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .day-number {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text-muted);
+        }
+
+        .day-cell.con-ventas .day-number {
+            color: #fff;
+        }
+
+        /* Etiqueta de cantidad de facturas/ventas del día */
+        .facturas-tag {
+            font-size: 0.65rem;
+            background: rgba(255, 255, 255, 0.08);
+            color: var(--text-muted);
+            padding: 2px 5px;
+            border-radius: 4px;
+            font-weight: 500;
+        }
+
+        .day-cell.con-ventas {
+            cursor: pointer;
+            border-color: rgba(0, 210, 255, 0.4);
+        }
+
+        .day-cell.con-ventas:hover {
+            border-color: var(--accent-cyan);
+            background: var(--bg-card-hover);
+            transform: translateY(-2px);
+        }
+
+        .day-badge-usd {
+            background: rgba(0, 210, 255, 0.15);
+            border: 1px solid var(--accent-cyan);
+            color: var(--accent-cyan);
+            font-size: 0.75rem;
+            font-weight: 700;
+            padding: 4px;
+            border-radius: 6px;
+            text-align: center;
+        }
+
+        .day-badge-bs {
+            color: var(--accent-green);
+            font-size: 0.68rem;
+            text-align: center;
+            margin-top: 2px;
+        }
+
+        /* Celda de Resumen Semanal (Columna 8) */
+        .weekly-summary-cell {
+            background: linear-gradient(135deg, rgba(22, 25, 46, 0.9), rgba(18, 20, 38, 0.9));
+            border: 1px dashed var(--accent-purple);
+            border-radius: 10px;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .weekly-title {
+            font-size: 0.72rem;
+            color: var(--accent-purple);
+            font-weight: 700;
+            text-transform: uppercase;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .weekly-badge-usd {
+            color: #fff;
+            font-size: 0.95rem;
+            font-weight: 800;
+            text-align: right;
+        }
+
+        .weekly-badge-bs {
+            color: var(--accent-green);
+            font-size: 0.75rem;
+            text-align: right;
+            font-weight: 600;
+        }
+
+        .weekly-count {
+            font-size: 0.68rem;
+            color: var(--text-muted);
+            text-align: right;
+            margin-top: 2px;
+        }
+
+        /* Modal Emergente */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.75);
+            backdrop-filter: blur(4px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+        }
+
+        .modal-content {
+            background: var(--bg-card);
+            border: 1px solid var(--accent-cyan);
+            border-radius: 16px;
+            width: 90%;
+            max-width: 650px;
+            max-height: 85vh;
+            overflow-y: auto;
+            padding: 22px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 12px;
+            margin-bottom: 15px;
+        }
+
+        .close-modal {
+            background: transparent;
+            border: none;
+            color: var(--accent-pink);
+            font-size: 1.4rem;
+            cursor: pointer;
+        }
+
+        .ticket-modal-card {
+            background: #101222;
+            border: 1px dashed var(--accent-cyan);
+            border-radius: 12px;
+            padding: 14px;
+            margin-bottom: 12px;
+        }
+
+        @media (max-width: 900px) {
+            .dashboard-container { flex-direction: column; }
+            .sidebar { width: 100%; border-right: none; border-bottom: 1px solid var(--border-color); }
+            .calendar-grid { grid-template-columns: repeat(7, 1fr); }
+            .weekly-head, .weekly-summary-cell { display: none; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="dashboard-container">
+    <aside class="sidebar">
+        <div class="brand-logo">
+            <div class="logo-icon">S</div>
+            <span>SISTEMA DE CONTROL</span>
+        </div>
+        <ul class="nav-menu">
+            <li class="nav-item"><a href="/"><i class="fa-solid fa-chart-pie"></i> Menú Principal</a></li>
+            <li class="nav-item"><a href="/inventario"><i class="fa-solid fa-boxes-stacked"></i> Inventario</a></li>
+            <li class="nav-item"><a href="/compra"><i class="fa-solid fa-cart-plus"></i> Agregar Compra</a></li>
+            <li class="nav-item"><a href="/venta"><i class="fa-solid fa-cash-register"></i> Registrar Venta</a></li>
+            <li class="nav-item active"><a href="/resumen_ventas"><i class="fa-solid fa-chart-line"></i> Resumen de Venta</a></li>
+        </ul>
+    </aside>
+
+    <main class="main-content">
+        <header class="top-bar">
+            <div class="page-title">
+                <h1>Resumen de Ventas</h1>
+                <p>Navega por meses y revisa el resumen semanal a la derecha de cada fila</p>
+            </div>
+        </header>
+
+        <div class="calendar-card">
+            <div class="calendar-nav-header">
+                <button class="btn-nav-cal" onclick="cambiarMes(-1)"><i class="fa-solid fa-chevron-left"></i> Anterior</button>
+                <h2 id="lblMesAño">Mes Año</h2>
+                <button class="btn-nav-cal" onclick="cambiarMes(1)">Siguiente <i class="fa-solid fa-chevron-right"></i></button>
+            </div>
+
+            <div class="calendar-grid">
+                <div class="day-name-head">Lun</div>
+                <div class="day-name-head">Mar</div>
+                <div class="day-name-head">Mié</div>
+                <div class="day-name-head">Jue</div>
+                <div class="day-name-head">Vie</div>
+                <div class="day-name-head">Sáb</div>
+                <div class="day-name-head">Dom</div>
+                <div class="day-name-head weekly-head"><i class="fa-solid fa-chart-simple"></i> Semanal</div>
+            </div>
+            
+            <div class="calendar-grid" id="gridDias"></div>
+        </div>
+    </main>
+</div>
+
+<!-- Modal Emergente para ver tickets del día -->
+<div class="modal-overlay" id="modalVentas">
+    <div class="modal-content">
+        <div class="modal-header">
+            <div>
+                <h3 id="modalTitulo" style="font-size: 1.1rem; color: #fff;">Ventas del día</h3>
+                <p id="modalSubtitulo" style="font-size: 0.8rem; color: var(--text-muted);"></p>
+            </div>
+            <button class="close-modal" onclick="cerrarModal()">✕</button>
+        </div>
+        <div id="modalListaVentas"></div>
+    </div>
+</div>
+
+<script>
+// Recibimos la estructura enviada desde Flask
+const semanasData = {{ semanas|tojson|safe }};
+
+// Mapear todas las ventas por fecha 'DD/MM/YYYY'
+const ventasPorFecha = {};
+
+semanasData.forEach(sem => {
+    sem.dias.forEach(dia => {
+        ventasPorFecha[dia.fecha_str] = dia;
+    });
+});
+
+let fechaActual = new Date();
+
+document.addEventListener("DOMContentLoaded", () => {
+    renderizarCalendario();
+});
+
+function cambiarMes(delta) {
+    fechaActual.setMonth(fechaActual.getMonth() + delta);
+    renderizarCalendario();
+}
+
+function renderizarCalendario() {
+    const año = fechaActual.getFullYear();
+    const mes = fechaActual.getMonth();
+
+    const nombreMes = new Intl.DateTimeFormat('es-ES', { month: 'long', year: 'numeric' }).format(fechaActual);
+    document.getElementById("lblMesAño").innerText = nombreMes;
+
+    const grid = document.getElementById("gridDias");
+    grid.innerHTML = "";
+
+    const primerDia = new Date(año, mes, 1);
+    let diaSemanaInicio = primerDia.getDay(); 
+    diaSemanaInicio = (diaSemanaInicio === 0) ? 6 : diaSemanaInicio - 1;
+
+    const ultimoDia = new Date(año, mes + 1, 0).getDate();
+
+    let celdasFila = [];
+    let totSemUsd = 0;
+    let totSemBs = 0;
+    let totSemVentas = 0;
+    let numSemana = 1;
+
+    // Rellenar espacios vacíos antes del primer día
+    for (let i = 0; i < diaSemanaInicio; i++) {
+        celdasFila.push('<div class="day-cell empty"></div>');
+    }
+
+    // Renderizar los días
+    for (let d = 1; d <= ultimoDia; d++) {
+        const diaPadded = String(d).padStart(2, '0');
+        const mesPadded = String(mes + 1).padStart(2, '0');
+        const fechaKey = `${diaPadded}/${mesPadded}/${año}`;
+
+        const datosDia = ventasPorFecha[fechaKey];
+
+        if (datosDia) {
+            totSemUsd += datosDia.total_usd;
+            totSemBs += datosDia.total_bs;
+            totSemVentas += datosDia.ventas.length;
+
+            const cantVentas = datosDia.ventas.length;
+            const txtVentas = cantVentas === 1 ? '1 venta' : `${cantVentas} ventas`;
+
+            celdasFila.push(`
+                <div class="day-cell con-ventas" onclick='abrirModalDia(${JSON.stringify(datosDia)})'>
+                    <div class="day-header-info">
+                        <span class="day-number">${d}</span>
+                        <span class="facturas-tag">${txtVentas}</span>
+                    </div>
+                    <div>
+                        <div class="day-badge-usd">$${datosDia.total_usd.toFixed(2)}</div>
+                        <div class="day-badge-bs">${datosDia.total_bs.toLocaleString('es-VE', {minimumFractionDigits:2})} Bs</div>
+                    </div>
+                </div>
+            `);
+        } else {
+            celdasFila.push(`
+                <div class="day-cell">
+                    <div class="day-header-info">
+                        <span class="day-number">${d}</span>
+                    </div>
+                </div>
+            `);
+        }
+
+        // Al completar 7 días (Lunes a Domingo), agregamos el Resumen Semanal
+        if (celdasFila.length === 7) {
+            imprimirFilaConResumen(grid, celdasFila, numSemana, totSemUsd, totSemBs, totSemVentas);
+            celdasFila = [];
+            totSemUsd = 0;
+            totSemBs = 0;
+            totSemVentas = 0;
+            numSemana++;
+        }
+    }
+
+    // Completar última semana si quedó incompleta
+    if (celdasFila.length > 0) {
+        while (celdasFila.length < 7) {
+            celdasFila.push('<div class="day-cell empty"></div>');
+        }
+        imprimirFilaConResumen(grid, celdasFila, numSemana, totSemUsd, totSemBs, totSemVentas);
+    }
+}
+
+function imprimirFilaConResumen(contenedor, celdas, numSem, usd, bs, cant) {
+    // Agregar las 7 celdas diarias
+    celdas.forEach(html => contenedor.innerHTML += html);
+
+    // Agregar la celda de resumen de la semana (Columna 8)
+    const summaryHtml = `
+        <div class="weekly-summary-cell">
+            <div class="weekly-title"><i class="fa-solid fa-chart-line"></i> Sem ${numSem}</div>
+            <div>
+                <div class="weekly-badge-usd">$${usd.toFixed(2)}</div>
+                <div class="weekly-badge-bs">${bs.toLocaleString('es-VE', {minimumFractionDigits:2})} Bs</div>
+                <div class="weekly-count">${cant} factura(s)</div>
+            </div>
+        </div>
+    `;
+    contenedor.innerHTML += summaryHtml;
+}
+
+function abrirModalDia(diaData) {
+    document.getElementById("modalTitulo").innerText = `Ventas del ${diaData.fecha_str}`;
+    document.getElementById("modalSubtitulo").innerText = `Total USD: $${diaData.total_usd.toFixed(2)} | Total Bs: ${diaData.total_bs.toLocaleString('es-VE', {minimumFractionDigits:2})} Bs`;
+    
+    const cont = document.getElementById("modalListaVentas");
+    cont.innerHTML = "";
+
+    diaData.ventas.forEach(v => {
+        let itemsHtml = "";
+        v.detalles.forEach(it => {
+            itemsHtml += `
+                <li style="display:flex; justify-content:space-between; margin-bottom:4px; font-size:0.82rem;">
+                    <span>${it.cantidad}x ${it.nombre}</span>
+                    <span>$${(it.cantidad * it.precio).toFixed(2)}</span>
+                </li>`;
+        });
+
+        cont.innerHTML += `
+            <div class="ticket-modal-card">
+                <div style="display:flex; justify-content:space-between; border-bottom:1px solid var(--border-color); padding-bottom:8px; margin-bottom:8px; font-size:0.8rem; color:var(--text-muted);">
+                    <span><b>#${v.id}</b> - ${v.hora}</span>
+                    <span style="background:rgba(0,210,255,0.15); color:var(--accent-cyan); padding:2px 8px; border-radius:6px; font-size:0.72rem; font-weight:600; text-transform:uppercase;">${v.metodo_pago}</span>
+                </div>
+                <ul style="list-style:none; margin-bottom:10px;">${itemsHtml}</ul>
+                <div style="border-top:1px solid var(--border-color); padding-top:8px; display:flex; justify-content:space-between; align-items:flex-end;">
+                    <div style="font-size:0.72rem; color:var(--text-muted);">Tasa BCV: ${v.tasa_bcv} Bs</div>
+                    <div style="text-align:right;">
+                        <div style="color:var(--accent-cyan); font-weight:700; font-size:0.95rem;">$${v.total_usd.toFixed(2)}</div>
+                        <div style="color:var(--accent-green); font-size:0.8rem;">${v.total_bs.toLocaleString('es-VE', {minimumFractionDigits:2})} Bs</div>
+                    </div>
+                </div>
+            </div>
+        `;
+    });
+
+    document.getElementById("modalVentas").style.display = "flex";
+}
+
+function cerrarModal() {
+    document.getElementById("modalVentas").style.display = "none";
+}
+
+document.getElementById("modalVentas").addEventListener("click", (e) => {
+    if (e.target.id === "modalVentas") cerrarModal();
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inventario - Sistema de Control</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+    <!-- Librería JsBarcode para generar las barras -->
+    <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
+
+    <style>
+        :root {
+            --bg-body: #0d0f1d;
+            --bg-card: #16192e;
+            --bg-card-hover: #1e223d;
+            --bg-sidebar: #121426;
+            --accent-cyan: #00d2ff;
+            --accent-pink: #ff2a70;
+            --accent-purple: #7000ff;
+            --text-main: #ffffff;
+            --text-muted: #8c93b0;
+            --border-color: #232745;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; }
+
+        body {
+            background-color: var(--bg-body);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 10px;
+        }
+
+        .dashboard-container {
+            width: 100%;
+            max-width: 1300px;
+            background-color: #121424;
+            border-radius: 20px;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
+            display: flex;
+            overflow: hidden;
+            min-height: 650px;
+        }
+
+        .sidebar {
+            width: 240px;
+            background-color: var(--bg-sidebar);
+            border-right: 1px solid var(--border-color);
+            padding: 20px 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .brand-logo { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 0.95rem; }
+        .logo-icon {
+            width: 32px; height: 32px;
+            background: linear-gradient(135deg, var(--accent-pink), var(--accent-purple));
+            border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 800;
+        }
+
+        .nav-menu { display: flex; flex-direction: column; gap: 8px; list-style: none; }
+        .nav-item a {
+            display: flex; align-items: center; gap: 12px; padding: 10px 14px;
+            color: var(--text-muted); text-decoration: none; border-radius: 10px; font-size: 0.85rem; font-weight: 500; transition: all 0.25s ease;
+        }
+        .nav-item a:hover, .nav-item.active a {
+            background-color: var(--bg-card-hover); color: var(--text-main); border-left: 3px solid var(--accent-cyan);
+        }
+
+        .main-content {
+            flex: 1; padding: 20px; display: flex; flex-direction: column; gap: 15px;
+            background: radial-gradient(circle at top right, #1a1d36, #121424); overflow-y: auto;
+        }
+
+        .top-bar { display: flex; justify-content: space-between; align-items: center; padding-bottom: 12px; border-bottom: 1px solid var(--border-color); }
+        .page-title h1 { font-size: 1.2rem; font-weight: 700; }
+        .page-title p { font-size: 0.75rem; color: var(--text-muted); }
+
+        .stat-badge {
+            background-color: var(--bg-card); border: 1px solid var(--border-color); padding: 6px 12px;
+            border-radius: 10px; font-size: 0.8rem; color: var(--accent-cyan); font-weight: 600;
+        }
+
+        .search-box-group { display: flex; gap: 8px; align-items: center; width: 100%; max-width: 450px; }
+        .search-container { position: relative; width: 100%; }
+        .search-container i { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-muted); font-size: 0.85rem; }
+        .search-input {
+            width: 100%; padding: 8px 12px 8px 35px; background-color: var(--bg-card);
+            border: 1px solid var(--border-color); border-radius: 8px; color: var(--text-main); font-size: 0.85rem; outline: none;
+        }
+        .search-input:focus { border-color: var(--accent-cyan); }
+
+        .btn-search-cam {
+            background: linear-gradient(135deg, var(--accent-purple), var(--accent-pink));
+            border: none; color: #fff; padding: 8px 14px; border-radius: 8px;
+            font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px;
+            font-size: 0.8rem; white-space: nowrap;
+        }
+
+        .table-card { background-color: var(--bg-card); border: 1px solid var(--border-color); border-radius: 14px; overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; text-align: left; font-size: 0.83rem; min-width: 750px; }
+        thead { background-color: rgba(0, 0, 0, 0.4); border-bottom: 1px solid var(--border-color); }
+        th { padding: 12px 10px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; font-size: 0.7rem; letter-spacing: 0.5px; }
+        td { padding: 8px 10px; border-bottom: 1px solid var(--border-color); vertical-align: middle; }
+        tr:hover { background-color: var(--bg-card-hover); }
+
+        .col-code { width: 160px; }
+        .col-name { width: 260px; }
+        .col-num { width: 65px; text-align: center; }
+        .col-price { width: 85px; text-align: center; }
+        .col-action { width: 70px; text-align: center; }
+
+        .form-control-dark {
+            background: rgba(0, 0, 0, 0.4); border: 1px solid var(--border-color); color: #fff;
+            border-radius: 6px; padding: 6px 8px; font-size: 0.82rem; outline: none; width: 100%;
+        }
+        .form-control-dark:focus { border-color: var(--accent-cyan); }
+
+        .input-nombre-prod {
+            font-weight: 600;
+            font-size: 0.88rem;
+            color: #fff;
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .btn-mini { border: none; background: transparent; padding: 4px; cursor: pointer; border-radius: 6px; }
+        .btn-mini:hover { background: rgba(255, 255, 255, 0.1); }
+
+        .input-code-wrapper {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+        .code-cam-icon {
+            position: absolute;
+            right: 8px;
+            color: var(--accent-cyan);
+            cursor: pointer;
+            font-size: 0.85rem;
+            background: rgba(0, 210, 255, 0.1);
+            padding: 4px 6px;
+            border-radius: 4px;
+            transition: background 0.2s;
+        }
+        .code-cam-icon:hover {
+            background: rgba(0, 210, 255, 0.3);
+        }
+
+        /* Modal Escáner de Cámara */
+        #reader-modal {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85); z-index: 9999; justify-content: center; align-items: center; flex-direction: column;
+        }
+        #reader-box { width: 90%; max-width: 380px; border-radius: 12px; overflow: hidden; background: #16192e; border: 1px solid var(--border-color); }
+
+        /* Modal Gráfico de Código de Barras (Impresión) */
+        #modalBarcode {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.8); z-index: 10000; justify-content: center; align-items: center;
+        }
+        .barcode-modal-content {
+            background: #16192e; border: 1px solid var(--border-color); padding: 30px; border-radius: 16px;
+            text-align: center; box-shadow: 0px 10px 30px rgba(0,0,0,0.5); max-width: 400px; width: 90%;
+        }
+        .barcode-box-container {
+            background: #ffffff; padding: 15px; border-radius: 8px; display: inline-block; margin: 15px 0;
+        }
+
+        /* Estilo para impresión limpia */
+        @media print {
+            body * { visibility: hidden; }
+            #modalBarcode, #modalBarcode * { visibility: visible; }
+            #modalBarcode { position: absolute; left: 0; top: 0; width: 100%; height: 100%; background: white; }
+            .barcode-modal-content { border: none; box-shadow: none; background: white; width: 100%; }
+            .no-print { display: none !important; }
+        }
+
+        @media (max-width: 900px) {
+            .dashboard-container { flex-direction: column; }
+            .sidebar { width: 100%; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- Modal para Escanear con Cámara -->
+<div id="reader-modal">
+    <div style="color: #fff; font-weight: 600; margin-bottom: 10px;">Apunta al código del producto</div>
+    <div id="reader-box"></div>
+    <button onclick="cerrarCamaraModal()" style="margin-top: 15px; padding: 8px 20px; background: var(--accent-pink); border: none; color: #fff; border-radius: 8px; font-weight: 600; cursor: pointer;">Cancelar Escaneo</button>
+</div>
+
+<!-- Modal para Ver y Generar el Código de Barras Gráfico -->
+<div id="modalBarcode">
+    <div class="barcode-modal-content">
+        <h3 style="color: #fff; margin-bottom: 5px; font-size: 1.1rem;">Etiqueta de Código de Barras</h3>
+        <p style="color: var(--text-muted); font-size: 0.8rem; margin-bottom: 15px;">Listo para imprimir o escanear</p>
+        
+        <div class="barcode-box-container">
+            <svg id="svgBarcode"></svg>
+        </div>
+        
+        <div style="margin-top: 20px; display: flex; gap: 10px; justify-content: center;" class="no-print">
+            <button onclick="window.print()" style="padding: 9px 18px; background: #28a745; color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer;">
+                <i class="fa-solid fa-print"></i> Imprimir
+            </button>
+            <button onclick="cerrarModalBarcode()" style="padding: 9px 18px; background: #dc3545; color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer;">
+                Cerrar
+            </button>
+        </div>
+    </div>
+</div>
+
+<div class="dashboard-container">
+    <aside class="sidebar">
+        <div class="brand-logo">
+            <div class="logo-icon">S</div>
+            <span>SISTEMA DE CONTROL</span>
+        </div>
+        <ul class="nav-menu">
+            <li class="nav-item"><a href="/"><i class="fa-solid fa-chart-pie"></i> Menú Principal</a></li>
+            <li class="nav-item active"><a href="/inventario"><i class="fa-solid fa-boxes-stacked"></i> Inventario</a></li>
+            <li class="nav-item"><a href="/compra"><i class="fa-solid fa-cart-plus"></i> Agregar Compra</a></li>
+            <li class="nav-item"><a href="/venta"><i class="fa-solid fa-cash-register"></i> Registrar Venta</a></li>
+            <li class="nav-item"><a href="/resumen_ventas"><i class="fa-solid fa-chart-line"></i> Resumen de Venta</a></li>
+        </ul>
+    </aside>
+
+    <main class="main-content">
+        <header class="top-bar">
+            <div class="page-title">
+                <h1>Inventario de Productos</h1>
+                <p>Gestión de existencias y códigos de barras</p>
+            </div>
+            <div class="stat-badge">
+                <i class="fa-solid fa-sack-dollar"></i> Valor: ${{ "%.2f"|format(valor_total) }}
+            </div>
+        </header>
+
+        <div class="search-box-group">
+            <div class="search-container">
+                <i class="fa-solid fa-magnifying-glass"></i>
+                <input type="text" id="inputBuscador" class="search-input" placeholder="Buscar por nombre o código..." onkeyup="filtrarProductos()">
+            </div>
+            <button type="button" class="btn-search-cam" onclick="escanearParaBuscador()">
+                <i class="fa-solid fa-camera"></i> Escanear
+            </button>
+        </div>
+
+        <div class="table-card">
+            <table id="tablaInventario">
+                <thead>
+                    <tr>
+                        <th class="col-code">Cód. Barras</th>
+                        <th class="col-name">Nombre del Producto</th>
+                        <th class="col-num">Entrada</th>
+                        <th class="col-num">Salidas</th>
+                        <th class="col-num">Stock</th>
+                        <th class="col-price">Costo</th>
+                        <th class="col-price">Venta</th>
+                        <th class="col-action">Acción</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for p in productos %}
+                    <tr class="fila-producto">
+                        <form action="/producto/editar/{{ p.id }}" method="POST">
+                            <td class="col-code">
+                                <div class="input-code-wrapper">
+                                    <input type="text" name="codigo_barras" id="cod_{{ p.id }}" class="form-control-dark input-codigo-barras" value="{{ p.codigo_barras or '' }}" placeholder="Vacío" style="font-family: monospace; font-size: 0.78rem; padding-right: 28px;">
+                                    <!-- Al tocar la cámara azul, genera y muestra la etiqueta visual -->
+                                    <i class="fa-solid fa-camera code-cam-icon" onclick="abrirModalCodigoBarras('{{ p.codigo_barras }}')" title="Ver código de barras para imprimir"></i>
+                                </div>
+                            </td>
+                            <td class="col-name">
+                                <input type="text" name="nombre" class="form-control-dark input-nombre-prod" value="{{ p.nombre }}" required>
+                            </td>
+                            <td class="col-num" style="color: var(--text-muted);">{{ p.entradas }}</td>
+                            <td class="col-num" style="color: var(--text-muted);">{{ p.salidas }}</td>
+                            <td class="col-num" style="color: var(--accent-cyan); font-weight: 700;">{{ p.cantidad }}</td>
+                            <td class="col-price">
+                                <input type="number" step="0.01" name="costo_unitario" class="form-control-dark text-center" value="{{ p.costo_unitario }}" required>
+                            </td>
+                            <td class="col-price">
+                                <input type="number" step="0.01" name="precio_venta" class="form-control-dark text-center" value="{{ p.precio_venta }}" required>
+                            </td>
+                            <td class="col-action">
+                                <button type="submit" class="btn-mini" title="Guardar Cambios">
+                                    <span>✏️</span><span style="color:#00e699;">✔️</span>
+                                </button>
+                            </td>
+                        </form>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </main>
+</div>
+
+<script>
+let html5QrCodeInv = null;
+let inputDestinoId = null;
+
+function escanearParaBuscador() {
+    inputDestinoId = 'inputBuscador';
+    iniciarEscaneo((codigoLimpio) => {
+        document.getElementById('inputBuscador').value = codigoLimpio;
+        filtrarProductos();
+    });
+}
+
+function iniciarEscaneo(callbackExito) {
+    const modal = document.getElementById("reader-modal");
+    modal.style.display = "flex";
+
+    html5QrCodeInv = new Html5Qrcode("reader-box");
+    const config = { fps: 10, qrbox: { width: 250, height: 100 } };
+
+    const onScanSuccess = (decodedText) => {
+        callbackExito(decodedText.trim());
+        cerrarCamaraModal();
+    };
+
+    html5QrCodeInv.start({ facingMode: "environment" }, config, onScanSuccess)
+        .catch(() => {
+            html5QrCodeInv.start({ facingMode: "user" }, config, onScanSuccess)
+                .catch(err => {
+                    alert("Error al abrir cámara: " + err);
+                    cerrarCamaraModal();
+                });
+        });
+}
+
+function cerrarCamaraModal() {
+    if (html5QrCodeInv) {
+        html5QrCodeInv.stop().then(() => {
+            document.getElementById("reader-modal").style.display = "none";
+            html5QrCodeInv = null;
+        }).catch(() => {
+            document.getElementById("reader-modal").style.display = "none";
+            html5QrCodeInv = null;
+        });
+    } else {
+        document.getElementById("reader-modal").style.display = "none";
+    }
+}
+
+/* Funciones para el Modal de Código de Barras Gráfico */
+function abrirModalCodigoBarras(codigo) {
+    if (!codigo || codigo.trim() === "" || codigo.toLowerCase() === "vacío" || codigo.toLowerCase() === "none") {
+        alert("Este producto no tiene un código de barras asignado.");
+        return;
+    }
+
+    document.getElementById('modalBarcode').style.display = 'flex';
+
+    try {
+        JsBarcode("#svgBarcode", codigo, {
+            format: "CODE128",
+            lineColor: "#000000",
+            width: 2.2,
+            height: 75,
+            displayValue: true,
+            fontSize: 16,
+            textMargin: 6,
+            font: "monospace"
+        });
+    } catch (error) {
+        alert("No se pudo generar el gráfico para este código.");
+    }
+}
+
+function cerrarModalBarcode() {
+    document.getElementById('modalBarcode').style.display = 'none';
+}
+
+function filtrarProductos() {
+    const busqueda = document.getElementById('inputBuscador').value.toLowerCase().trim();
+    const filas = document.querySelectorAll('.fila-producto');
+
+    filas.forEach(fila => {
+        const inputNombre = fila.querySelector('.input-nombre-prod');
+        const inputCodigo = fila.querySelector('.input-codigo-barras');
+        
+        const nombreProd = inputNombre ? inputNombre.value.toLowerCase() : '';
+        const codigoProd = inputCodigo ? inputCodigo.value.toLowerCase() : '';
+
+        if (nombreProd.includes(busqueda) || codigoProd.includes(busqueda)) {
+            fila.style.display = '';
+        } else {
+            fila.style.display = 'none';
+        }
+    });
+}
+</script>
+
+</body>
+</html>

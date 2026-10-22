@@ -1,0 +1,762 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agregar Compra - Sistema de Control</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Librería Html5-Qrcode para el escáner con cámara -->
+    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+    <!-- Librería SweetAlert2 para Notificaciones Profesionales y Elegantes -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    
+    <style>
+        :root {
+            --bg-body: #0d0f1d;
+            --bg-card: #16192e;
+            --bg-card-hover: #1e223d;
+            --bg-sidebar: #121426;
+            --accent-cyan: #00d2ff;
+            --accent-pink: #ff2a70;
+            --accent-purple: #7000ff;
+            --accent-warning: #ffb703;
+            --text-main: #ffffff;
+            --text-muted: #8c93b0;
+            --border-color: #232745;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; }
+
+        body {
+            background-color: var(--bg-body);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .dashboard-container {
+            width: 100%;
+            max-width: 1200px;
+            background-color: #121424;
+            border-radius: 20px;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
+            display: flex;
+            overflow: hidden;
+            min-height: 650px;
+        }
+
+        .sidebar {
+            width: 250px;
+            background-color: var(--bg-sidebar);
+            border-right: 1px solid var(--border-color);
+            padding: 25px 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 25px;
+        }
+
+        .brand-logo { display: flex; align-items: center; gap: 12px; font-weight: 700; font-size: 1.1rem; }
+        .logo-icon {
+            width: 36px; height: 36px;
+            background: linear-gradient(135deg, var(--accent-pink), var(--accent-purple));
+            border-radius: 10px; display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 800;
+        }
+
+        .nav-menu { display: flex; flex-direction: column; gap: 10px; list-style: none; }
+        .nav-item a {
+            display: flex; align-items: center; gap: 14px; padding: 12px 16px;
+            color: var(--text-muted); text-decoration: none; border-radius: 12px; font-size: 0.9rem; font-weight: 500; transition: all 0.25s ease;
+        }
+        .nav-item a:hover, .nav-item.active a {
+            background-color: var(--bg-card-hover); color: var(--text-main); border-left: 3px solid var(--accent-cyan);
+        }
+
+        .main-content {
+            flex: 1; padding: 25px 30px; display: flex; flex-direction: column; gap: 20px;
+            background: radial-gradient(circle at top right, #1a1d36, #121424); overflow-y: auto;
+        }
+
+        .top-bar { display: flex; justify-content: space-between; align-items: center; padding-bottom: 15px; border-bottom: 1px solid var(--border-color); }
+        .page-title h1 { font-size: 1.4rem; font-weight: 700; }
+        .page-title p { font-size: 0.8rem; color: var(--text-muted); }
+
+        .card-dark {
+            background-color: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 20px;
+        }
+
+        .card-dark h4 { font-size: 1.1rem; margin-bottom: 15px; font-weight: 600; color: #fff; }
+
+        .form-grid { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 15px; align-items: flex-end; }
+        .form-control-dark {
+            background: rgba(0, 0, 0, 0.3); border: 1px solid var(--border-color); color: #fff;
+            border-radius: 8px; padding: 8px 12px; font-size: 0.85rem; outline: none; width: 100%;
+        }
+        .form-control-dark:focus { border-color: var(--accent-cyan); }
+
+        .search-wrapper { position: relative; flex: 2; min-width: 200px; }
+        
+        #sugerenciasContainer {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: #1a1d36;
+            border: 1px solid var(--accent-cyan);
+            border-radius: 0 0 8px 8px;
+            max-height: 200px;
+            overflow-y: auto;
+            z-index: 1000;
+            display: none;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.5);
+        }
+
+        .sugerencia-item {
+            padding: 10px 12px;
+            font-size: 0.85rem;
+            cursor: pointer;
+            border-bottom: 1px solid var(--border-color);
+            transition: background 0.2s;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .sugerencia-item:last-child { border-bottom: none; }
+        .sugerencia-item:hover { background: var(--bg-card-hover); color: var(--accent-cyan); }
+        .sugerencia-info { font-size: 0.75rem; color: var(--text-muted); }
+
+        .btn-cyan {
+            background: linear-gradient(135deg, var(--accent-cyan), #0080ff);
+            border: none; color: #fff; padding: 9px 16px; border-radius: 8px; font-weight: 600; cursor: pointer; transition: opacity 0.2s;
+            height: 35px;
+        }
+        .btn-cyan:hover { opacity: 0.9; }
+
+        .btn-green {
+            background: linear-gradient(135deg, #00e699, #009966);
+            border: none; color: #fff; padding: 10px 20px; border-radius: 8px; font-weight: 600; cursor: pointer;
+        }
+
+        .btn-scanner {
+            background: linear-gradient(135deg, #7000ff, var(--accent-pink));
+            border: none; color: #fff; padding: 10px 18px; border-radius: 8px; font-weight: 600; cursor: pointer; width: 100%; margin-bottom: 15px; display: flex; align-items: center; justify-content: center; gap: 8px;
+        }
+
+        .btn-ai {
+            background: linear-gradient(135deg, #00d2ff, #7000ff);
+            border: none; color: #fff; padding: 12px 18px; border-radius: 12px; font-weight: 600; cursor: pointer; width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; transition: opacity 0.2s;
+        }
+        .btn-ai:hover { opacity: 0.9; }
+
+        #reader-modal {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85); z-index: 9999; justify-content: center; align-items: center; flex-direction: column;
+        }
+        #reader-box { width: 90%; max-width: 400px; border-radius: 12px; overflow: hidden; background: #16192e; border: 1px solid var(--border-color); }
+
+        .badge-nuevo {
+            background: rgba(255, 42, 112, 0.2); border: 1px solid var(--accent-pink); color: var(--accent-pink);
+            padding: 6px 12px; border-radius: 8px; font-size: 0.8rem; font-weight: 600; display: inline-block; margin-bottom: 10px;
+        }
+
+        .table-dark-custom { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 0.88rem; }
+        .table-dark-custom th { padding: 10px; background: rgba(0,0,0,0.3); color: var(--text-muted); text-align: left; font-size: 0.75rem; text-transform: uppercase; border-bottom: 1px solid var(--border-color); }
+        .table-dark-custom td { padding: 10px; border-bottom: 1px solid var(--border-color); }
+
+        .row-factura { cursor: pointer; }
+        .row-factura:hover { background-color: var(--bg-card-hover); }
+
+        .modal-overlay {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.7); backdrop-filter: blur(4px); z-index: 1000;
+            align-items: center; justify-content: center;
+        }
+        .modal-box {
+            background-color: var(--bg-card); border: 1px solid var(--border-color);
+            border-radius: 16px; width: 95%; max-width: 850px; padding: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+        }
+        .modal-body { width: 100%; overflow-x: auto; }
+        .modal-box .form-control-dark { min-width: 0; width: 100%; }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 1px solid var(--border-color); padding-bottom: 10px; }
+        .btn-close-modal { background: transparent; border: none; color: var(--text-muted); font-size: 1.2rem; cursor: pointer; }
+        .btn-close-modal:hover { color: #fff; }
+
+        /* Estilos oscuros personalizados para los cuadros flotantes de SweetAlert2 */
+        .swal-dark-popup {
+            background-color: #16192e !important;
+            border: 1px solid #232745 !important;
+            color: #ffffff !important;
+            border-radius: 16px !important;
+        }
+        .swal-dark-title {
+            color: #00d2ff !important;
+        }
+    </style>
+</head>
+<body>
+
+<div id="reader-modal">
+    <div style="color: #fff; font-weight: 600; margin-bottom: 10px;">Apunta al código de barras del producto</div>
+    <div id="reader-box"></div>
+    <button onclick="cerrarCamara()" style="margin-top: 15px; padding: 8px 20px; background: var(--accent-pink); border: none; color: #fff; border-radius: 8px; font-weight: 600; cursor: pointer;">Cancelar Escaneo</button>
+</div>
+
+<div class="dashboard-container">
+    <aside class="sidebar">
+        <div class="brand-logo">
+            <div class="logo-icon">EF</div>
+            <span>EMPRENDIMIENTO FLORENCIO</span>
+        </div>
+        <ul class="nav-menu">
+            <li class="nav-item"><a href="/"><i class="fa-solid fa-chart-pie"></i> Menú Principal</a></li>
+            <li class="nav-item"><a href="/inventario"><i class="fa-solid fa-boxes-stacked"></i> Inventario</a></li>
+            <li class="nav-item active"><a href="/compra"><i class="fa-solid fa-cart-plus"></i> Agregar Compra</a></li>
+            <li class="nav-item"><a href="/venta"><i class="fa-solid fa-cash-register"></i> Registrar Venta</a></li>
+            <li class="nav-item"><a href="/resumen_ventas"><i class="fa-solid fa-chart-line"></i> Resumen de Venta</a></li>
+            <li class="nav-item"><a href="/resumen_financiero"><i class="fa-solid fa-file-invoice-dollar"></i> Resumen Financiero</a></li>
+        </ul>
+    </aside>
+
+    <main class="main-content">
+        <header class="top-bar">
+            <div class="page-title">
+                <h1>Gestión de Compras</h1>
+                <p>Ingreso de facturas de mercancía y costos de fletes/envío</p>
+            </div>
+        </header>
+
+        <!-- SECCIÓN CARGAR FACTURA CON IA -->
+        <div class="card-dark" style="border: 1px dashed var(--accent-cyan); background: rgba(0, 210, 255, 0.03);">
+            <h4 style="color: var(--accent-cyan);"><i class="fa-solid fa-wand-magic-sparkles"></i> Ingreso Rápido con IA (Foto de Factura)</h4>
+            <p style="font-size: 0.82rem; color: var(--text-muted); margin-bottom: 12px;">Toma una foto a la factura y la IA llenará el proveedor y los productos para que puedas verificarlos antes de guardar.</p>
+            
+            <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
+                <input type="file" id="fotoFacturaAI" accept="image/*" capture="environment" class="form-control-dark" style="flex: 2; min-width: 200px;">
+                <button class="btn-ai" style="flex: 1; min-width: 160px; margin: 0;" onclick="procesarFacturaConIA()">
+                    <i class="fa-solid fa-camera"></i> Procesar Factura con IA
+                </button>
+            </div>
+        </div>
+
+        <!-- SECCIÓN INGRESAR NUEVA FACTURA -->
+        <div class="card-dark">
+            <h4>Ingresar Nueva Factura (Manual / Código de Barras / IA)</h4>
+
+            <button class="btn-scanner" onclick="iniciarEscannerCompra()">
+                <i class="fa-solid fa-barcode"></i> Escanear Código de Barras del Producto
+            </button>
+
+            <!-- Datos Generales -->
+            <div class="form-grid mb-3">
+                <div style="flex: 1.5; min-width: 180px;">
+                    <label style="font-size: 0.75rem; color: var(--text-muted); display: block; margin-bottom: 4px;">Proveedor</label>
+                    <input type="text" id="provNombre" class="form-control-dark" placeholder="Ej: Alibaba / Andreina Suspensión" value="Proveedor General">
+                </div>
+                <div style="flex: 1; min-width: 140px;">
+                    <label style="font-size: 0.75rem; color: var(--accent-warning); font-weight: 600; display: block; margin-bottom: 4px;">
+                        <i class="fa-solid fa-truck-fast"></i> Costo Envío / Flete ($)
+                    </label>
+                    <input type="number" step="0.01" id="costoEnvio" class="form-control-dark" placeholder="0.00" value="0.00" oninput="actualizarTotalConEnvio()">
+                </div>
+            </div>
+
+            <div id="avisoProductoNuevo" style="display: none;" class="badge-nuevo">
+                <i class="fa-solid fa-triangle-exclamation"></i> ¡Atención! Este producto es nuevo. Ingrese su nombre y costo.
+            </div>
+
+            <div class="form-grid">
+                <div style="flex: 1.2; min-width: 130px;">
+                    <label style="font-size: 0.75rem; color: var(--text-muted); display: block; margin-bottom: 4px;">Código de barras</label>
+                    <input type="text" id="prodCodigo" class="form-control-dark" placeholder="Código" style="font-family: monospace;" onchange="verificarCodigo(this.value)">
+                </div>
+                <div class="search-wrapper">
+                    <label style="font-size: 0.75rem; color: var(--text-muted); display: block; margin-bottom: 4px;">Producto</label>
+                    <input type="text" id="prodNombre" class="form-control-dark" placeholder="Escribe para buscar..." oninput="filtrarProductos()" autocomplete="off">
+                    <div id="sugerenciasContainer"></div>
+                </div>
+                <div style="flex: 0.7; min-width: 90px;">
+                    <label style="font-size: 0.75rem; color: var(--text-muted); display: block; margin-bottom: 4px;">Cantidad</label>
+                    <input type="number" id="prodCant" class="form-control-dark" value="1" min="1">
+                </div>
+                <div style="flex: 1; min-width: 110px;">
+                    <label style="font-size: 0.75rem; color: var(--text-muted); display: block; margin-bottom: 4px;">Costo Unit $</label>
+                    <input type="number" step="0.01" id="prodCosto" class="form-control-dark" placeholder="0.00">
+                </div>
+                <div>
+                    <button class="btn-cyan" onclick="agregarItem()">+</button>
+                </div>
+            </div>
+
+            <table class="table-dark-custom" id="tablaTemporal">
+                <thead>
+                    <tr><th>CÓDIGO</th><th>PRODUCTO</th><th>CANT</th><th>COSTO UNIT</th><th>SUBTOTAL</th><th></th></tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 15px; border-top: 1px solid var(--border-color); padding-top: 12px;">
+                <div>
+                    <span style="font-size: 0.8rem; color: var(--text-muted);">Mercancía: $<span id="subtotalMercancia">0.00</span> | Envío: $<span id="montoEnvioLabel">0.00</span></span>
+                    <h4 style="color: var(--accent-cyan); font-size: 1.3rem;">Total Factura: $<span id="totalNuevaFactura">0.00</span></h4>
+                </div>
+                <button class="btn-green" onclick="guardarFacturaCompra()">Guardar Factura</button>
+            </div>
+        </div>
+
+        <!-- HISTORIAL ARCHIVADO -->
+        <div class="card-dark">
+            <h4>Historial de Compras Archivadas</h4>
+            <table class="table-dark-custom">
+                <thead>
+                    <tr>
+                        <th>Nº factura</th>
+                        <th>fecha y hora</th>
+                        <th>Proveedor</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for f in facturas %}
+                    <tr class="row-factura" onclick="abrirModalFactura({{ f.id }})">
+                        <td style="color: var(--accent-cyan); font-weight: 600;">#{{ f.id }}</td>
+                        <td style="color: var(--text-muted);">{{ f.fecha.strftime('%d/%m/%Y %H:%M') }}</td>
+                        <td>{{ f.proveedor or 'Sin Proveedor' }}</td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="3" style="text-align: center; color: var(--text-muted);">No hay facturas archivadas.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </main>
+</div>
+
+<!-- VENTANA FLOTANTE (MODAL CON HISTORIAL) -->
+<div class="modal-overlay" id="modalOverlay">
+    <div class="modal-box">
+        <div class="modal-header">
+            <h5 style="font-size: 1rem; font-weight: 600;">Factura #<span id="mId"></span> — Total: $<span id="mTotal" style="color: var(--accent-cyan);">0.00</span></h5>
+            <button class="btn-close-modal" onclick="cerrarModal()">✕</button>
+        </div>
+        <div class="modal-body">
+            <div style="margin-bottom: 12px; display: flex; gap: 15px; align-items: center;">
+                <label style="font-size: 0.8rem; color: var(--accent-warning);">Costo Envío / Flete ($):</label>
+                <input type="number" step="0.01" id="mCostoEnvio" class="form-control-dark" style="width: 120px;" oninput="recalcularTotalModal()">
+            </div>
+            <table class="table-dark-custom" style="margin-bottom: 15px;">
+                <thead>
+                    <tr>
+                        <th style="width: 80px;">cantidad</th>
+                        <th>producto</th>
+                        <th style="width: 110px;">costo unitario</th>
+                        <th style="width: 100px;">subtotal</th>
+                    </tr>
+                </thead>
+                <tbody id="mCuerpoTabla"></tbody>
+            </table>
+
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <button class="btn-cyan" id="btnPagAnt" onclick="cambiarPagina(-1)" style="padding: 4px 12px;">◀</button>
+                <span style="font-size: 0.85rem; color: var(--text-muted);" id="lblPagina">1 / 1</span>
+                <button class="btn-cyan" id="btnPagSig" onclick="cambiarPagina(1)" style="padding: 4px 12px;">▶</button>
+            </div>
+        </div>
+        <div style="text-align: right; margin-top: 15px;">
+            <button class="btn-green" onclick="guardarCambiosModal()">Guardar Cambios</button>
+        </div>
+    </div>
+</div>
+
+<script>
+let productosDb = [];
+let itemsNueva = [];
+let detallesModal = [];
+let facturaActualId = null;
+let paginaActual = 1;
+let html5QrCode = null;
+
+const POR_PAGINA = 10; 
+
+document.addEventListener("DOMContentLoaded", () => {
+    fetch('/api/productos')
+        .then(r => r.json())
+        .then(data => {
+            productosDb = Array.isArray(data) ? data : (data.productos || data.data || []);
+        })
+        .catch(err => console.error("Error cargando productos:", err));
+
+    document.addEventListener("click", (e) => {
+        if (!e.target.closest('.search-wrapper')) {
+            const container = document.getElementById('sugerenciasContainer');
+            if(container) container.style.display = 'none';
+        }
+    });
+});
+
+/* PROCESAR FACTURA CON IA (ALERTAS ELEGANTES CON SWEETALERT2) */
+async function procesarFacturaConIA() {
+    const inputFoto = document.getElementById('fotoFacturaAI');
+    if (inputFoto.files.length === 0) {
+        Swal.fire({
+            icon: 'warning',
+            title: 'Atención',
+            text: 'Por favor selecciona o toma una foto de la factura primero.',
+            customClass: { popup: 'swal-dark-popup', title: 'swal-dark-title' }
+        });
+        return;
+    }
+
+    const formData = new FormData();
+    formData.append('imagen', inputFoto.files[0]);
+
+    // Ventana elegante de carga animada
+    Swal.fire({
+        title: 'Analizando Factura con IA...',
+        html: 'La IA de Gemini está extrayendo los productos y el proveedor.',
+        allowOutsideClick: false,
+        didOpen: () => {
+            Swal.showLoading();
+        },
+        customClass: { popup: 'swal-dark-popup', title: 'swal-dark-title' }
+    });
+
+    try {
+        const response = await fetch('/api/analizar_factura_ia', {
+            method: 'POST',
+            body: formData
+        });
+        const resultado = await response.json();
+
+        if (resultado.success) {
+            const datos = resultado.datos;
+            
+            if (datos.proveedor) {
+                document.getElementById('provNombre').value = datos.proveedor;
+            }
+            if (datos.costo_envio !== undefined) {
+                document.getElementById('costoEnvio').value = datos.costo_envio;
+            }
+
+            itemsNueva = (datos.detalles || []).map(item => ({
+                codigo: item.codigo || '',
+                nombre: item.nombre || 'Producto',
+                cantidad: parseInt(item.cantidad) || 1,
+                costo: parseFloat(item.costo) || 0.0
+            }));
+
+            renderNuevaTabla();
+
+            // Notificación flotante de éxito
+            Swal.fire({
+                icon: 'success',
+                title: '¡Factura Procesada!',
+                text: 'Revisa el proveedor, ajusta los repuestos si es necesario y haz clic en Guardar Factura.',
+                confirmButtonColor: '#00e699',
+                customClass: { popup: 'swal-dark-popup', title: 'swal-dark-title' }
+            });
+        } else {
+            Swal.fire({
+                icon: 'error',
+                title: 'Error al Procesar',
+                text: resultado.message || 'No se pudo analizar la factura.',
+                customClass: { popup: 'swal-dark-popup' }
+            });
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        Swal.fire({
+            icon: 'error',
+            title: 'Error de Conexión',
+            text: 'Ocurrió un error al intentar comunicar con el servidor.',
+            customClass: { popup: 'swal-dark-popup' }
+        });
+    }
+}
+
+function filtrarProductos() {
+    const inputVal = document.getElementById('prodNombre').value.trim().toLowerCase();
+    const container = document.getElementById('sugerenciasContainer');
+    container.innerHTML = '';
+
+    if (!inputVal) {
+        container.style.display = 'none';
+        return;
+    }
+
+    const filtrados = productosDb.filter(p => {
+        const nombre = (p.nombre || '').toLowerCase();
+        const codigo = (p.codigo_barras || '').toLowerCase();
+        return nombre.includes(inputVal) || codigo.includes(inputVal);
+    });
+
+    if (filtrados.length === 0) {
+        container.style.display = 'none';
+        document.getElementById('avisoProductoNuevo').style.display = 'block';
+        return;
+    } else {
+        document.getElementById('avisoProductoNuevo').style.display = 'none';
+    }
+
+    filtrados.forEach(p => {
+        const div = document.createElement('div');
+        div.className = 'sugerencia-item';
+        div.innerHTML = `
+            <span>${p.nombre}</span>
+            <span class="sugerencia-info">Stock: ${p.cantidad || 0} | Costo: $${p.costo_unitario || 0}</span>
+        `;
+        div.onclick = () => seleccionarProductoCompra(p);
+        container.appendChild(div);
+    });
+
+    container.style.display = 'block';
+}
+
+function seleccionarProductoCompra(prod) {
+    document.getElementById('prodNombre').value = prod.nombre;
+    document.getElementById('prodCodigo').value = prod.codigo_barras || '';
+    document.getElementById('prodCosto').value = prod.costo_unitario ?? 0;
+    document.getElementById('sugerenciasContainer').style.display = 'none';
+    document.getElementById('avisoProductoNuevo').style.display = 'none';
+    document.getElementById('prodCant').focus();
+}
+
+function iniciarEscannerCompra() {
+    const modal = document.getElementById("reader-modal");
+    modal.style.display = "flex";
+
+    html5QrCode = new Html5Qrcode("reader-box");
+    const config = { fps: 10, qrbox: { width: 250, height: 100 } };
+
+    const onScanSuccess = (decodedText) => {
+        const codigo = decodedText.trim();
+        document.getElementById('prodCodigo').value = codigo;
+        cerrarCamara();
+        verificarCodigo(codigo);
+    };
+
+    html5QrCode.start({ facingMode: "environment" }, config, onScanSuccess)
+        .catch(() => {
+            html5QrCode.start({ facingMode: "user" }, config, onScanSuccess)
+                .catch(err => {
+                    Swal.fire({ icon: 'error', title: 'Error de Cámara', text: err, customClass: { popup: 'swal-dark-popup' } });
+                    cerrarCamara();
+                });
+        });
+}
+
+function cerrarCamara() {
+    if (html5QrCode) {
+        html5QrCode.stop().then(() => {
+            document.getElementById("reader-modal").style.display = "none";
+            html5QrCode = null;
+        }).catch(() => {
+            document.getElementById("reader-modal").style.display = "none";
+            html5QrCode = null;
+        });
+    } else {
+        document.getElementById("reader-modal").style.display = "none";
+    }
+}
+
+function verificarCodigo(codigo) {
+    if (!codigo) return;
+
+    fetch(`/api/producto/codigo/${encodeURIComponent(codigo)}`)
+        .then(r => r.json())
+        .then(res => {
+            const inputNombre = document.getElementById('prodNombre');
+            const inputCosto = document.getElementById('prodCosto');
+            const avisoNuevo = document.getElementById('avisoProductoNuevo');
+
+            if (res.encontrado) {
+                inputNombre.value = res.nombre;
+                inputCosto.value = res.costo_unitario;
+                avisoNuevo.style.display = 'none';
+            } else {
+                inputNombre.value = '';
+                inputCosto.value = '';
+                avisoNuevo.style.display = 'block';
+                inputNombre.focus();
+            }
+        })
+        .catch(err => console.error("Error consultando código:", err));
+}
+
+function agregarItem() {
+    const codigo = document.getElementById('prodCodigo').value.trim();
+    const prod = document.getElementById('prodNombre').value.trim();
+    const cant = parseInt(document.getElementById('prodCant').value);
+    const costo = parseFloat(document.getElementById('prodCosto').value);
+
+    if(!prod || isNaN(cant) || isNaN(costo)) {
+        Swal.fire({ icon: 'warning', title: 'Incompleto', text: 'Por favor complete los campos obligatorios del producto.', customClass: { popup: 'swal-dark-popup' } });
+        return;
+    }
+
+    itemsNueva.push({ codigo: codigo || '', nombre: prod, cantidad: cant, costo: costo });
+    renderNuevaTabla();
+
+    document.getElementById('prodCodigo').value = '';
+    document.getElementById('prodNombre').value = '';
+    document.getElementById('prodCant').value = '1';
+    document.getElementById('prodCosto').value = '';
+    document.getElementById('avisoProductoNuevo').style.display = 'none';
+}
+
+function renderNuevaTabla() {
+    const tbody = document.querySelector('#tablaTemporal tbody');
+    tbody.innerHTML = '';
+    let totalMercancia = 0;
+    itemsNueva.forEach((item, idx) => {
+        const sub = item.cantidad * item.costo;
+        totalMercancia += sub;
+        tbody.innerHTML += `
+            <tr>
+                <td style="font-family: monospace; color: var(--accent-cyan);">${item.codigo || '-'}</td>
+                <td>${item.nombre}</td>
+                <td>${item.cantidad}</td>
+                <td>$${item.costo.toFixed(2)}</td>
+                <td>$${sub.toFixed(2)}</td>
+                <td><button style="background:transparent; border:none; color:var(--accent-pink); cursor:pointer;" onclick="itemsNueva.splice(${idx},1);renderNuevaTabla();">✕</button></td>
+            </tr>`;
+    });
+    
+    document.getElementById('subtotalMercancia').innerText = totalMercancia.toFixed(2);
+    actualizarTotalConEnvio();
+}
+
+function actualizarTotalConEnvio() {
+    const subtotalMercancia = parseFloat(document.getElementById('subtotalMercancia').innerText) || 0.0;
+    const costoEnvio = parseFloat(document.getElementById('costoEnvio').value) || 0.0;
+    
+    document.getElementById('montoEnvioLabel').innerText = costoEnvio.toFixed(2);
+    document.getElementById('totalNuevaFactura').innerText = (subtotalMercancia + costoEnvio).toFixed(2);
+}
+
+/* GUARDAR FACTURA CON AVISO PROFESIONAL */
+function guardarFacturaCompra() {
+    const prov = document.getElementById('provNombre').value.trim() || "Proveedor General";
+    const subtotalMercancia = parseFloat(document.getElementById('subtotalMercancia').innerText) || 0.0;
+    const costoEnvio = parseFloat(document.getElementById('costoEnvio').value) || 0.0;
+
+    if(itemsNueva.length === 0) {
+        Swal.fire({ icon: 'warning', title: 'Tabla Vacía', text: 'Agregue al menos un producto a la lista.', customClass: { popup: 'swal-dark-popup' } });
+        return;
+    }
+
+    fetch('/compra', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+            proveedor: prov,
+            detalles: itemsNueva,
+            costo_envio: costoEnvio,
+            total: subtotalMercancia
+        })
+    }).then(r => r.json()).then(res => {
+        if(res.success) {
+            Swal.fire({
+                icon: 'success',
+                title: '¡Factura Registrada!',
+                text: 'La mercancía y el stock han sido actualizados en la base de datos.',
+                confirmButtonColor: '#00e699',
+                customClass: { popup: 'swal-dark-popup', title: 'swal-dark-title' }
+            }).then(() => {
+                location.reload();
+            });
+        } else {
+            Swal.fire({ icon: 'error', title: 'Error', text: res.message || "Error al guardar la factura.", customClass: { popup: 'swal-dark-popup' } });
+        }
+    });
+}
+
+function abrirModalFactura(id) {
+    facturaActualId = id;
+    fetch(`/api/factura_compra/${id}`)
+        .then(r => r.json())
+        .then(data => {
+            document.getElementById('mId').innerText = data.id;
+            document.getElementById('mTotal').innerText = data.total.toFixed(2);
+            document.getElementById('mCostoEnvio').value = (data.costo_envio || 0.0).toFixed(2);
+            detallesModal = data.detalles;
+            paginaActual = 1;
+            renderModalPagina();
+            document.getElementById('modalOverlay').style.display = 'flex';
+        });
+}
+
+function cerrarModal() {
+    document.getElementById('modalOverlay').style.display = 'none';
+}
+
+function renderModalPagina() {
+    const tbody = document.getElementById('mCuerpoTabla');
+    tbody.innerHTML = '';
+
+    const inicio = (paginaActual - 1) * POR_PAGINA;
+    const fin = inicio + POR_PAGINA;
+    const paginaItems = detallesModal.slice(inicio, fin);
+
+    paginaItems.forEach((d, idxInPage) => {
+        const realIndex = inicio + idxInPage;
+        const sub = (d.cantidad || 0) * (d.costo_unitario || 0);
+        tbody.innerHTML += `
+            <tr>
+                <td><input type="number" class="form-control-dark" value="${d.cantidad}" oninput="actualizarDetalleCampo(${realIndex}, 'cantidad', this.value, ${idxInPage})"></td>
+                <td><input type="text" class="form-control-dark" value="${d.producto}" oninput="actualizarDetalleCampo(${realIndex}, 'producto', this.value, ${idxInPage})"></td>
+                <td><input type="number" step="0.01" class="form-control-dark" value="${d.costo_unitario}" oninput="actualizarDetalleCampo(${realIndex}, 'costo_unitario', this.value, ${idxInPage})"></td>
+                <td style="font-weight:600; color:var(--accent-cyan);" id="subtotal_${idxInPage}">$${sub.toFixed(2)}</td>
+            </tr>`;
+    });
+
+    const totalPaginas = Math.ceil(detallesModal.length / POR_PAGINA) || 1;
+    document.getElementById('lblPagina').innerText = `${paginaActual} / ${totalPaginas}`;
+    document.getElementById('btnPagAnt').disabled = (paginaActual === 1);
+    document.getElementById('btnPagSig').disabled = (paginaActual >= totalPaginas);
+}
+
+function cambiarPagina(dir) {
+    paginaActual += dir;
+    renderModalPagina();
+}
+
+function actualizarDetalleCampo(index, campo, valor, idxInPage) {
+    if(campo === 'cantidad') detallesModal[index].cantidad = parseInt(valor) || 0;
+    if(campo === 'producto') detallesModal[index].producto = valor;
+    if(campo === 'costo_unitario') detallesModal[index].costo_unitario = parseFloat(valor) || 0.0;
+    
+    const sub = (detallesModal[index].cantidad || 0) * (detallesModal[index].costo_unitario || 0);
+    const subEl = document.getElementById(`subtotal_${idxInPage}`);
+    if(subEl) subEl.innerText = `$${sub.toFixed(2)}`;
+
+    recalcularTotalModal();
+}
+
+function recalcularTotalModal() {
+    let subtotalMercancia = detallesModal.reduce((acc, item) => acc + ((item.cantidad || 0) * (item.costo_unitario || 0)), 0);
+    let costoEnvio = parseFloat(document.getElementById('mCostoEnvio').value) || 0.0;
+    document.getElementById('mTotal').innerText = (subtotalMercancia + costoEnvio).toFixed(2);
+}
+
+function guardarCambiosModal() {
+    let costoEnvio = parseFloat(document.getElementById('mCostoEnvio').value) || 0.0;
+    fetch(`/api/factura_compra/editar/${facturaActualId}`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ detalles: detallesModal, costo_envio: costoEnvio })
+    }).then(r => r.json()).then(res => {
+        if(res.success) location.reload();
+        else alert(res.message);
+    });
+}
+</script>
+</body>
+</html>
