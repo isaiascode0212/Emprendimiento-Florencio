@@ -457,7 +457,7 @@ def procesar_factura_ia():
             try:
                 base64_image = base64.b64encode(imagen_bytes).decode('utf-8')
                 completion = groq_client.chat.completions.create(
-                    model="llama-3.2-90b-vision-preview",
+                    model="llama-3.3-70b-vision-versatile",
                     messages=[{
                         "role": "user",
                         "content": [
