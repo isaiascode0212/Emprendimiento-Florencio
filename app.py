@@ -1,5 +1,7 @@
+import base64
 import sys
 import io
+import time
 
 # Forzar codificación UTF-8 en la terminal para evitar errores con tildes y caracteres especiales
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
@@ -15,6 +17,7 @@ from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import text
 from google import genai
 from google.genai import types
+from openai import OpenAI
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'florencio_secret_key'
@@ -28,8 +31,18 @@ app.config['TEMPLATES_AUTO_RELOAD'] = True
 
 db = SQLAlchemy(app)
 
-# Inicializar cliente de Gemini leyendo de forma segura la variable de entorno
+# Inicializar clientes leyendo de forma segura desde las variables de entorno de Render
 client = genai.Client(api_key=os.environ.get("GEMINI_API_KEY"))
+
+openrouter_client = OpenAI(
+    base_url="https://openrouter.ai/api/v1",
+    api_key=os.environ.get("OPENROUTER_API_KEY")
+)
+
+groq_client = OpenAI(
+    base_url="https://api.groq.com/openai/v1",
+    api_key=os.environ.get("GROQ_API_KEY")
+)
 
 
 # --- MODELOS ---
@@ -348,7 +361,7 @@ def editar_factura_compra(id):
     return jsonify({'success': True, 'message': 'Factura actualizada con éxito.'})
 
 
-# --- RUTA: PROCESAR FACTURA CON IA (GEMINI) ---
+# --- RUTA: PROCESAR FACTURA CON IA (TRIPLE RESPALDO Y CONTROL DE TIEMPO) ---
 @app.route('/api/procesar_factura_ia', methods=['POST'])
 def procesar_factura_ia():
     if 'imagen' not in request.files:
@@ -360,6 +373,7 @@ def procesar_factura_ia():
 
     try:
         imagen_bytes = imagen_file.read()
+        mime_tipo = imagen_file.content_type or 'image/jpeg'
 
         prompt = (
             "Analiza esta factura o nota de entrega de repuestos/mercancia. "
@@ -369,7 +383,7 @@ def procesar_factura_ia():
             '  "costo_envio": 0.0,\n'
             '  "detalles": [\n'
             "    {\n"
-            '      "codigo": "Codigo de barra o referencia del producto si existe, si no, \\"\\"",\n'
+            '      "codigo": "Codigo de barra o referencia del producto si existe, si no, \\"\\"\",\n'
             '      "nombre": "Nombre o descripcion exacta del producto",\n'
             '      "cantidad": 1,\n'
             '      "costo": 0.0\n'
@@ -379,21 +393,88 @@ def procesar_factura_ia():
             "Asegurate de que los valores numericos sean correctos (float para costos, int para cantidades)."
         )
 
-        response = client.models.generate_content(
-            model='gemini-3.8-flash',
-            contents=[
-                types.Part.from_bytes(
-                    data=imagen_bytes,
-                    mime_type=imagen_file.content_type or 'image/jpeg',
-                ),
-                prompt
-            ],
-            config=types.GenerateContentConfig(
-                response_mime_type="application/json"
-            ),
-        )
+        texto_respuesta = None
+        ultimo_error = None
+        tiempo_inicio = time.time()
+        limite_tiempo = 60  # Límite máximo de 1 minuto en total
 
-        texto_respuesta = response.text.encode('utf-8', errors='ignore').decode('utf-8')
+        # --- NIVEL 1: GOOGLE GEMINI (Modelos principales con reintentos) ---
+        modelos_gemini = ['gemini-3.8-flash', 'gemini-2.5-flash']
+        
+        for nombre_modelo in modelos_gemini:
+            if time.time() - tiempo_inicio > limite_tiempo:
+                break
+            for intento in range(3):
+                if time.time() - tiempo_inicio > limite_tiempo:
+                    break
+                try:
+                    response = client.models.generate_content(
+                        model=nombre_modelo,
+                        contents=[
+                            types.Part.from_bytes(
+                                data=imagen_bytes,
+                                mime_type=mime_tipo,
+                            ),
+                            prompt
+                        ],
+                        config=types.GenerateContentConfig(
+                            response_mime_type="application/json"
+                        ),
+                    )
+                    texto_respuesta = response.text.encode('utf-8', errors='ignore').decode('utf-8')
+                    break
+                except Exception as err:
+                    ultimo_error = err
+                    print(f"Aviso: Gemini ({nombre_modelo}) intento {intento+1} falló: {err}")
+                    time.sleep(3)
+            if texto_respuesta:
+                break
+
+        # --- NIVEL 2: OPENROUTER (Respaldo si Gemini no respondió) ---
+        if not texto_respuesta and (time.time() - tiempo_inicio <= limite_tiempo):
+            print("Gemini agotado. Intentando con OpenRouter...")
+            try:
+                base64_image = base64.b64encode(imagen_bytes).decode('utf-8')
+                completion = openrouter_client.chat.completions.create(
+                    model="google/gemini-2.5-flash",
+                    messages=[{
+                        "role": "user",
+                        "content": [
+                            {"type": "text", "text": prompt},
+                            {"type": "image_url", "image_url": {"url": f"data:{mime_tipo};base64,{base64_image}"}}
+                        ]
+                    }],
+                    response_format={"type": "json_object"}
+                )
+                texto_respuesta = completion.choices[0].message.content
+            except Exception as err_or:
+                ultimo_error = err_or
+                print(f"OpenRouter también falló: {err_or}")
+
+        # --- NIVEL 3: GROQ CLOUD (Respaldo final ultrarrápido) ---
+        if not texto_respuesta and (time.time() - tiempo_inicio <= limite_tiempo):
+            print("OpenRouter agotado. Intentando con Groq Cloud...")
+            try:
+                base64_image = base64.b64encode(imagen_bytes).decode('utf-8')
+                completion = groq_client.chat.completions.create(
+                    model="llama-3.2-90b-vision-preview",
+                    messages=[{
+                        "role": "user",
+                        "content": [
+                            {"type": "text", "text": prompt},
+                            {"type": "image_url", "image_url": {"url": f"data:{mime_tipo};base64,{base64_image}"}}
+                        ]
+                    }],
+                    response_format={"type": "json_object"}
+                )
+                texto_respuesta = completion.choices[0].message.content
+            except Exception as err_groq:
+                ultimo_error = err_groq
+                print(f"Groq Cloud también falló: {err_groq}")
+
+        if not texto_respuesta:
+            raise Exception(f"Todos los proveedores de IA fallaron o se agotó el tiempo límite de 1 minuto. Último error: {ultimo_error}")
+
         datos_factura = json.loads(texto_respuesta)
 
         proveedor = datos_factura.get('proveedor') or proveedor_sugerido
@@ -730,17 +811,12 @@ def resumen_ventas():
 # --- RUTA: RESUMEN FINANCIERO Y FLUJO DE CAJA ---
 @app.route('/resumen_financiero')
 def resumen_financiero():
-    # 1. Inversión total en compras (mercancía + fletes)
     total_inversion = db.session.query(db.func.sum(FacturaCompra.total)).scalar() or 0.0
-
-    # 2. Ventas totales brutas
     total_ventas = db.session.query(db.func.sum(FacturaVenta.total)).scalar() or 0.0
 
-    # 3. Valor del inventario actual en almacén (al costo)
     productos = Producto.query.all()
     valor_inventario = sum(p.cantidad * p.costo_unitario for p in productos)
 
-    # 4. Ganancia Realizada y Margen Bruto sobre ventas
     ganancia_realizada = 0.0
     facturas_venta = FacturaVenta.query.all()
     for f in facturas_venta:
@@ -753,8 +829,6 @@ def resumen_financiero():
             ganancia_realizada += d.cantidad * (d.precio_unitario - costo_ref)
 
     margen_bruto_pct = (ganancia_realizada / total_ventas * 100) if total_ventas > 0 else 0.0
-
-    # 5. Flujo de Caja Neto (Ventas cobradas menos Inversión total realizada)
     flujo_caja_neto = total_ventas - total_inversion
 
     if 'tasa_bcv' not in session:

@@ -190,7 +190,6 @@
         .btn-close-modal { background: transparent; border: none; color: var(--text-muted); font-size: 1.2rem; cursor: pointer; }
         .btn-close-modal:hover { color: #fff; }
 
-        /* Estilos oscuros personalizados para los cuadros flotantes de SweetAlert2 */
         .swal-dark-popup {
             background-color: #16192e !important;
             border: 1px solid #232745 !important;
@@ -401,7 +400,6 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 });
 
-/* PROCESAR FACTURA CON IA (ALERTAS ELEGANTES CON SWEETALERT2) */
 async function procesarFacturaConIA() {
     const inputFoto = document.getElementById('fotoFacturaAI');
     if (inputFoto.files.length === 0) {
@@ -417,10 +415,9 @@ async function procesarFacturaConIA() {
     const formData = new FormData();
     formData.append('imagen', inputFoto.files[0]);
 
-    // Ventana elegante de carga animada
     Swal.fire({
         title: 'Analizando Factura con IA...',
-        html: 'La IA de Gemini está extrayendo los productos y el proveedor.',
+        html: 'El sistema de triple respaldo está procesando la imagen.',
         allowOutsideClick: false,
         didOpen: () => {
             Swal.showLoading();
@@ -436,7 +433,7 @@ async function procesarFacturaConIA() {
         const resultado = await response.json();
 
         if (resultado.success) {
-            const datos = resultado.datos;
+            const datos = resultado.datos_extraidos;
             
             if (datos.proveedor) {
                 document.getElementById('provNombre').value = datos.proveedor;
@@ -454,7 +451,6 @@ async function procesarFacturaConIA() {
 
             renderNuevaTabla();
 
-            // Notificación flotante de éxito
             Swal.fire({
                 icon: 'success',
                 title: '¡Factura Procesada!',
@@ -641,7 +637,6 @@ function actualizarTotalConEnvio() {
     document.getElementById('totalNuevaFactura').innerText = (subtotalMercancia + costoEnvio).toFixed(2);
 }
 
-/* GUARDAR FACTURA CON AVISO PROFESIONAL */
 function guardarFacturaCompra() {
     const prov = document.getElementById('provNombre').value.trim() || "Proveedor General";
     const subtotalMercancia = parseFloat(document.getElementById('subtotalMercancia').innerText) || 0.0;
