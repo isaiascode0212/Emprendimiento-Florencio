@@ -436,7 +436,7 @@ def procesar_factura_ia():
             try:
                 base64_image = base64.b64encode(imagen_bytes).decode('utf-8')
                 completion = openrouter_client.chat.completions.create(
-                    model="google/gemini-2.5-flash:free",
+                    model="meta-llama/llama-3.2-11b-vision-instruct:free",
                     messages=[{
                         "role": "user",
                         "content": [
